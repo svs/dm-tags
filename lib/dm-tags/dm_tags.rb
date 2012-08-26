@@ -23,7 +23,7 @@ module DataMapper
         associations.flatten!
         associations.uniq!
 
-        has n, :taggings, Tagging, :child_key => [ :taggable_id ], :taggable_type => self
+        has n, :taggings, Tagging, :child_key => [ :taggable_id ], :taggable_type => self, :constraint => :destroy
 
         before :destroy, :destroy_taggings
 
@@ -42,14 +42,11 @@ module DataMapper
         associations.each do |association|
           association = association.to_s
           singular    = DataMapper::Inflector.singularize(association)
-
           class_eval <<-RUBY, __FILE__, __LINE__ + 1
             property :frozen_#{singular}_list, Text
 
             has n, :#{singular}_taggings, Tagging, :child_key => [ :taggable_id ], :taggable_type => self, :tag_context => '#{association}'
             has n, :#{association},       Tag,     :through => :#{singular}_taggings, :via => :tag, :order => [ :name ]
-
-            before :save, :update_#{association}
 
             def #{singular}_list
               @#{singular}_list ||= #{association}.map { |tag| tag.name }
@@ -57,6 +54,7 @@ module DataMapper
 
             def #{singular}_list=(string)
               @#{singular}_list = string.to_s.split(',').map { |name| name.gsub(/[^\\w\\s_-]/i, '').strip }.uniq.sort
+              update_#{singular.pluralize}
             end
 
             alias_method :#{singular}_collection=, :#{singular}_list=
@@ -65,7 +63,6 @@ module DataMapper
               self.#{association} = #{singular}_list.map do |name|
                 Tag.first_or_new(:name => name)
               end
-
               self.frozen_#{singular}_list = #{singular}_collection
             end
 

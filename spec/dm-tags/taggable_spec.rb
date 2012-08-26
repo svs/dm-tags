@@ -108,6 +108,28 @@ describe "Taggable" do
       end
     end
 
+    describe "tagged_with_all/any" do
+      before :all do
+        Taggable.all.destroy!
+        @taggable.tag_list = 'tag1, tag2, tag3'
+        @taggable.save
+        @taggable2 = DefaultTaggedModel.new
+        @taggable2.tag_list = 'tag1, goat, fish'
+        @taggable2.save
+      end
+
+      it "should find correct tagged_with_all records" do
+        TaggedModel.tagged_with_all('tag1, tag2').should == [@taggable]
+      end
+
+      it "should find correct tagged_with_any records" do
+        TaggedModel.tagged_with_any('tag1, tag2').should == [@taggable, @taggable2]
+      end
+
+    end
+
+
+
     it "should allow extra conditions for the query" do
       taggable1 = TaggedModel.new
       taggable2 = TaggedModel.new
@@ -160,4 +182,7 @@ describe "Taggable" do
       TaggedModel.tagged_with('tag1').should == []
     end
   end
+
+
+
 end
